@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import PurchaseTable from '../components/PurchaseTable';
-import PurchaseFilters from '../components/PurchaseFilters';
-import PurchaseModal from '../components/PurchaseModal';
+import PurchaseForm from '../components/PurchaseForm';
 import purchaseService from '../services/purchaseService';
 import medicineService from '../services/medicineService';
 import supplierService from '../services/supplierService';
@@ -10,13 +8,19 @@ import SuccessAlert from '../components/SuccessAlert';
 
 /**
  * Purchases Page
- * Modern SaaS-style purchase order management
+ * Create and manage purchase orders
  * 
  * Features:
- * - View purchase history with filters
- * - Filter by supplier and date range
- * - Sortable and paginated table
- * - Create new purchase orders via modal
+ * - View recent purchase details with filters
+ * - Filter by supplier
+ * - Filter by date range
+ * - Create new purchase order
+ * - Select supplier from dropdown
+ * - Add multiple medicines in one purchase
+ * - Dynamic form rows
+ * - Calculate total purchase amount automatically
+ * - Submit to POST /api/purchases
+ * - Show success notification
  */
 const Purchases = () => {
   // Form-related states
@@ -24,7 +28,6 @@ const Purchases = () => {
   const [suppliers, setSuppliers] = useState([]);
   const [loadingMedicines, setLoadingMedicines] = useState(true);
   const [loadingSuppliers, setLoadingSuppliers] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [formError, setFormError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -33,7 +36,6 @@ const Purchases = () => {
   const [purchases, setPurchases] = useState([]);
   const [loadingPurchases, setLoadingPurchases] = useState(true);
   const [purchasesError, setPurchasesError] = useState(null);
-  const [totalCount, setTotalCount] = useState(0);
 
   // Filter states
   const [filterSupplier, setFilterSupplier] = useState('');
@@ -54,6 +56,11 @@ const Purchases = () => {
       const medicinesData = response.data.data.medicines || [];
       setMedicines(medicinesData);
     } catch (err) {
+      const errorMessage =
+        err.response?.data?.message ||
+        err.message ||
+        'Failed to load medicines. Please try again.';
+      setFormError(errorMessage);
       console.error('Error fetching medicines:', err);
     } finally {
       setLoadingMedicines(false);
@@ -67,34 +74,30 @@ const Purchases = () => {
       const suppliersData = response.data.data.suppliers || [];
       setSuppliers(suppliersData);
     } catch (err) {
+      const errorMessage =
+        err.response?.data?.message ||
+        err.message ||
+        'Failed to load suppliers. Please try again.';
+      setFormError(errorMessage);
       console.error('Error fetching suppliers:', err);
     } finally {
       setLoadingSuppliers(false);
     }
   };
 
-  const fetchPurchases = async (options = {}) => {
+  const fetchPurchases = async (supplier = '', startDate = '', endDate = '') => {
     try {
       setLoadingPurchases(true);
       setPurchasesError(null);
 
-      const filters = {
-        ...(filterSupplier && { supplier: filterSupplier }),
-        ...(filterStartDate && { startDate: filterStartDate }),
-        ...(filterEndDate && { endDate: filterEndDate }),
-        ...(options.search && { search: options.search }),
-        ...(options.page && { page: options.page }),
-        ...(options.pageSize && { pageSize: options.pageSize }),
-        ...(options.sortBy && { sortBy: options.sortBy }),
-        ...(options.sortOrder && { sortOrder: options.sortOrder }),
-      };
+      const filters = {};
+      if (supplier) filters.supplier = supplier;
+      if (startDate) filters.startDate = startDate;
+      if (endDate) filters.endDate = endDate;
 
       const response = await purchaseService.getPurchases(filters);
       const purchasesData = response.data.data.purchases || [];
-      const totalCount = response.data.data.totalCount || purchasesData.length;
-      
       setPurchases(purchasesData);
-      setTotalCount(totalCount);
     } catch (err) {
       const errorMessage =
         err.response?.data?.message ||
@@ -109,65 +112,14 @@ const Purchases = () => {
 
   // Handle filter changes
   const handleFilterChange = async () => {
-    await fetchPurchases({});
+    await fetchPurchases(filterSupplier, filterStartDate, filterEndDate);
   };
 
   const handleResetFilters = async () => {
     setFilterSupplier('');
     setFilterStartDate('');
     setFilterEndDate('');
-    await fetchPurchases({});
-  };
-
-  // Action handlers
-  const handleViewDetails = (purchaseId) => {
-    console.log('View purchase details:', purchaseId);
-    // TODO: Implement view details modal
-  };
-
-  const handleEditPurchase = (purchaseId) => {
-    console.log('Edit purchase:', purchaseId);
-    // TODO: Implement edit functionality
-  };
-
-  const handleMarkReceived = async (purchaseId) => {
-    try {
-      setLoadingPurchases(true);
-      await purchaseService.markAsReceived(purchaseId);
-      setSuccessMessage('Purchase marked as received successfully!');
-      await fetchPurchases({});
-      setTimeout(() => {
-        setSuccessMessage(null);
-      }, 5000);
-    } catch (err) {
-      const errorMessage =
-        err.response?.data?.message ||
-        err.message ||
-        'Failed to mark purchase as received.';
-      setFormError(errorMessage);
-      console.error('Error marking purchase as received:', err);
-      setLoadingPurchases(false);
-    }
-  };
-
-  const handleDeletePurchase = async (purchaseId) => {
-    try {
-      setLoadingPurchases(true);
-      await purchaseService.deletePurchase(purchaseId);
-      setSuccessMessage('Purchase deleted successfully!');
-      await fetchPurchases({});
-      setTimeout(() => {
-        setSuccessMessage(null);
-      }, 5000);
-    } catch (err) {
-      const errorMessage =
-        err.response?.data?.message ||
-        err.message ||
-        'Failed to delete purchase.';
-      setFormError(errorMessage);
-      console.error('Error deleting purchase:', err);
-      setLoadingPurchases(false);
-    }
+    await fetchPurchases('', '', '');
   };
 
   const handleSubmitPurchase = async (purchaseData) => {
@@ -187,9 +139,8 @@ const Purchases = () => {
         `Purchase order created successfully! Order ID: ${response.data.data._id || 'Created'}`
       );
 
-      // Close modal and refresh purchases list
-      setIsModalOpen(false);
-      await fetchPurchases({});
+      // Refresh purchases list
+      await fetchPurchases(filterSupplier, filterStartDate, filterEndDate);
 
       setTimeout(() => {
         setSuccessMessage(null);
@@ -208,87 +159,179 @@ const Purchases = () => {
 
   const isFormLoading = loadingMedicines || loadingSuppliers;
 
+  // Format date for display
+  const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    return new Date(dateString).toLocaleDateString('en-IN', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  // Get supplier name by ID
+  const getSupplierName = (supplierId) => {
+    const supplier = suppliers.find((s) => s._id === supplierId || s.id === supplierId);
+    return supplier ? supplier.name : 'Unknown';
+  };
+
   return (
-    <div className="purchases-page-modern">
-      {/* Header Section */}
-      <div className="page-header-modern">
-        <div className="header-content">
-          <div className="header-text">
-            <h1 className="page-title">Purchase Orders</h1>
-            <p className="page-subtitle">Manage supplier orders and track deliveries</p>
-          </div>
-          <button
-            className="btn-new-purchase"
-            onClick={() => setIsModalOpen(true)}
-            disabled={isFormLoading}
-          >
-            <span className="btn-icon">+</span>
-            New Purchase Order
-          </button>
+    <div className="purchases-page">
+      {/* Purchase History Section */}
+      <section className="purchase-history-section">
+        <div className="section-header">
+          <h2>Purchase History</h2>
         </div>
-      </div>
 
-      {/* Alert Messages */}
-      {purchasesError && (
-        <ErrorAlert
-          message={purchasesError}
-          onClose={() => setPurchasesError(null)}
-        />
-      )}
+        {purchasesError && (
+          <ErrorAlert
+            message={purchasesError}
+            onClose={() => setPurchasesError(null)}
+          />
+        )}
 
-      {formError && (
-        <ErrorAlert
-          message={formError}
-          onClose={() => setFormError(null)}
-        />
-      )}
+        {/* Filters */}
+        <div className="filters-container">
+          <div className="filter-group">
+            <label htmlFor="filterSupplier">Supplier</label>
+            <select
+              id="filterSupplier"
+              value={filterSupplier}
+              onChange={(e) => setFilterSupplier(e.target.value)}
+            >
+              <option value="">All Suppliers</option>
+              {suppliers.map((supplier) => (
+                <option key={supplier._id || supplier.id} value={supplier._id || supplier.id}>
+                  {supplier.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
-      {successMessage && (
-        <SuccessAlert
-          message={successMessage}
-          onClose={() => setSuccessMessage(null)}
-        />
-      )}
+          <div className="filter-group">
+            <label htmlFor="filterStartDate">From Date</label>
+            <input
+              id="filterStartDate"
+              type="date"
+              value={filterStartDate}
+              onChange={(e) => setFilterStartDate(e.target.value)}
+            />
+          </div>
 
-      {/* Main Content */}
-      <div className="page-content-modern">
-        {/* Filters Section */}
-        <PurchaseFilters
-          suppliers={suppliers}
-          filterSupplier={filterSupplier}
-          filterStartDate={filterStartDate}
-          filterEndDate={filterEndDate}
-          onSupplierChange={setFilterSupplier}
-          onStartDateChange={setFilterStartDate}
-          onEndDateChange={setFilterEndDate}
-          onApplyFilters={handleFilterChange}
-          onResetFilters={handleResetFilters}
-          isLoading={loadingPurchases}
-        />
+          <div className="filter-group">
+            <label htmlFor="filterEndDate">To Date</label>
+            <input
+              id="filterEndDate"
+              type="date"
+              value={filterEndDate}
+              onChange={(e) => setFilterEndDate(e.target.value)}
+            />
+          </div>
 
-        {/* Purchases Table Section */}
-        <PurchaseTable
-          purchases={purchases}
-          suppliers={suppliers}
-          isLoading={loadingPurchases}
-          totalCount={totalCount}
-          onFetchPurchases={fetchPurchases}
-          onViewDetails={handleViewDetails}
-          onEditPurchase={handleEditPurchase}
-          onMarkReceived={handleMarkReceived}
-          onDeletePurchase={handleDeletePurchase}
-        />
-      </div>
+          <div className="filter-actions">
+            <button
+              className="btn-primary"
+              onClick={handleFilterChange}
+              disabled={loadingPurchases}
+            >
+              Apply Filters
+            </button>
+            <button
+              className="btn-secondary"
+              onClick={handleResetFilters}
+              disabled={loadingPurchases}
+            >
+              Reset
+            </button>
+          </div>
+        </div>
 
-      {/* Purchase Modal */}
-      <PurchaseModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        medicines={medicines}
-        suppliers={suppliers}
-        onSubmit={handleSubmitPurchase}
-        isLoading={isSubmitting}
-      />
+        {/* Purchases Table */}
+        {loadingPurchases ? (
+          <div className="loading-container">
+            <p>Loading purchases...</p>
+          </div>
+        ) : purchases.length === 0 ? (
+          <div className="empty-state">
+            <p>No purchases found. Create your first purchase order!</p>
+          </div>
+        ) : (
+          <div className="purchases-table-container">
+            <table className="purchases-table">
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Supplier</th>
+                  <th>Purchase Date</th>
+                  <th>Delivery Date</th>
+                  <th>Items</th>
+                  <th>Total Amount</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {purchases.map((purchase) => (
+                  <tr key={purchase._id || purchase.id} className={`status-${purchase.status}`}>
+                    <td>
+                      <span className="order-id">{(purchase._id || purchase.id).slice(-8)}</span>
+                    </td>
+                    <td>{getSupplierName(purchase.supplier)}</td>
+                    <td>{formatDate(purchase.purchaseDate)}</td>
+                    <td>{formatDate(purchase.expectedDeliveryDate || purchase.actualDeliveryDate)}</td>
+                    <td>
+                      <span className="item-count">{purchase.items?.length || 0}</span>
+                    </td>
+                    <td className="amount">
+                      ₹{(purchase.totalAmount || 0).toFixed(2)}
+                    </td>
+                    <td>
+                      <span className={`status-badge status-${purchase.status}`}>
+                        {purchase.status?.charAt(0).toUpperCase() + purchase.status?.slice(1) || 'Pending'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      {/* Create Purchase Section */}
+      <section className="create-purchase-section">
+        <div className="section-header">
+          <h2>Create New Purchase Order</h2>
+        </div>
+
+        {formError && (
+          <ErrorAlert
+            message={formError}
+            onClose={() => setFormError(null)}
+          />
+        )}
+
+        {successMessage && (
+          <SuccessAlert
+            message={successMessage}
+            onClose={() => setSuccessMessage(null)}
+          />
+        )}
+
+        <div className="page-content">
+          {isFormLoading ? (
+            <div className="loading-container">
+              <p>Loading medicines and suppliers...</p>
+            </div>
+          ) : (
+            <PurchaseForm
+              medicines={medicines}
+              suppliers={suppliers}
+              onSubmit={handleSubmitPurchase}
+              isLoading={isSubmitting}
+            />
+          )}
+        </div>
+      </section>
     </div>
   );
 };

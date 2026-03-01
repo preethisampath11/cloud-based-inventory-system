@@ -41,27 +41,6 @@ const purchaseService = {
       params: { startDate, endDate },
     });
   },
-
-  /**
-   * Mark purchase as received
-   */
-  markAsReceived: (purchaseId) => {
-    return apiClient.patch(`/purchases/${purchaseId}/mark-received`);
-  },
-
-  /**
-   * Delete purchase order
-   */
-  deletePurchase: (purchaseId) => {
-    return apiClient.delete(`/purchases/${purchaseId}`);
-  },
-
-  /**
-   * Update purchase order
-   */
-  updatePurchase: (purchaseId, updateData) => {
-    return apiClient.put(`/purchases/${purchaseId}`, updateData);
-  },
 };
 
 export default purchaseService;
