@@ -3,6 +3,49 @@ const AppError = require('../utils/errorClass');
 const logger = require('../utils/logger');
 
 /**
+ * Get all batches with optional filters
+ */
+const getAllBatches = async (req, res, next) => {
+  try {
+    const { medicine, supplier, status, sortBy = 'purchaseDate' } = req.query;
+
+    // Build filter object
+    const filter = {};
+
+    if (medicine) {
+      filter.medicine = medicine;
+    }
+
+    if (supplier) {
+      filter.supplier = supplier;
+    }
+
+    if (status === 'expired') {
+      filter.isExpired = true;
+    } else if (status === 'active') {
+      filter.isExpired = false;
+    }
+
+    // Fetch batches with populated references
+    const batches = await Batch.find(filter)
+      .populate('medicine')
+      .populate('supplier')
+      .sort({ [sortBy]: -1 });
+
+    res.status(200).json({
+      status: 'success',
+      count: batches.length,
+      data: {
+        batches,
+      },
+    });
+  } catch (error) {
+    logger.error(`Get all batches error: ${error.message}`);
+    next(error);
+  }
+};
+
+/**
  * Add a new batch
  */
 const addBatch = async (req, res, next) => {
@@ -216,6 +259,7 @@ const updateBatchQuantity = async (req, res, next) => {
 };
 
 module.exports = {
+  getAllBatches,
   addBatch,
   getBatchesByMedicine,
   filterBatchesByExpiry,

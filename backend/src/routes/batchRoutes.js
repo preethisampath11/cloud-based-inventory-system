@@ -1,6 +1,7 @@
 const express = require('express');
 const Joi = require('joi');
 const {
+  getAllBatches,
   addBatch,
   getBatchesByMedicine,
   filterBatchesByExpiry,
@@ -29,6 +30,13 @@ const addBatchSchema = Joi.object({
 const updateQuantitySchema = Joi.object({
   quantityAvailable: Joi.number().integer().min(0).required(),
 });
+
+/**
+ * GET /api/v1/batches
+ * Get all batches with optional filters
+ * Query params: medicine, supplier, status, sortBy
+ */
+router.get('/', authenticate, getAllBatches);
 
 /**
  * POST /api/v1/batches

@@ -25,10 +25,22 @@ const authService = {
   },
 
   /**
+   * Request admin access
+   */
+  requestAdminAccess: (data) => {
+    return apiClient.post('/auth/request-admin', {
+      email: data.email,
+      password: data.password,
+      name: data.name,
+      reason: data.reason,
+    });
+  },
+
+  /**
    * Get current user profile
    */
   getProfile: () => {
-    return apiClient.get('/auth/profile');
+    return apiClient.get('/auth/me');
   },
 
   /**

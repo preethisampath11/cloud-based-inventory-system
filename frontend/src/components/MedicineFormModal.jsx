@@ -15,12 +15,12 @@ const MedicineFormModal = ({ isOpen, onClose, onSubmit, initialData = null, isLo
   const [formData, setFormData] = useState({
     name: '',
     genericName: '',
-    manufacturer: '',
-    quantity: '',
-    price: '',
-    expiryDate: '',
-    batchNumber: '',
     description: '',
+    dosageForm: 'tablet',
+    dosageStrength: '',
+    manufacturer: '',
+    category: '',
+    reorderLevel: '50',
   });
 
   const [errors, setErrors] = useState({});
@@ -34,12 +34,12 @@ const MedicineFormModal = ({ isOpen, onClose, onSubmit, initialData = null, isLo
         setFormData({
           name: '',
           genericName: '',
-          manufacturer: '',
-          quantity: '',
-          price: '',
-          expiryDate: '',
-          batchNumber: '',
           description: '',
+          dosageForm: 'tablet',
+          dosageStrength: '',
+          manufacturer: '',
+          category: '',
+          reorderLevel: '50',
         });
       }
       setErrors({});
@@ -57,18 +57,6 @@ const MedicineFormModal = ({ isOpen, onClose, onSubmit, initialData = null, isLo
     }
     if (!formData.manufacturer.trim()) {
       newErrors.manufacturer = 'Manufacturer is required';
-    }
-    if (!formData.quantity || formData.quantity < 0) {
-      newErrors.quantity = 'Valid quantity is required';
-    }
-    if (!formData.price || formData.price < 0) {
-      newErrors.price = 'Valid price is required';
-    }
-    if (!formData.batchNumber.trim()) {
-      newErrors.batchNumber = 'Batch number is required';
-    }
-    if (!formData.expiryDate) {
-      newErrors.expiryDate = 'Expiry date is required';
     }
 
     setErrors(newErrors);
@@ -119,6 +107,7 @@ const MedicineFormModal = ({ isOpen, onClose, onSubmit, initialData = null, isLo
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
+                placeholder="e.g., Aspirin 500mg"
                 className={errors.name ? 'input-error' : ''}
                 disabled={isLoading}
               />
@@ -133,6 +122,7 @@ const MedicineFormModal = ({ isOpen, onClose, onSubmit, initialData = null, isLo
                 name="genericName"
                 value={formData.genericName}
                 onChange={handleChange}
+                placeholder="e.g., Acetylsalicylic Acid"
                 className={errors.genericName ? 'input-error' : ''}
                 disabled={isLoading}
               />
@@ -149,6 +139,7 @@ const MedicineFormModal = ({ isOpen, onClose, onSubmit, initialData = null, isLo
                 name="manufacturer"
                 value={formData.manufacturer}
                 onChange={handleChange}
+                placeholder="e.g., Bayer"
                 className={errors.manufacturer ? 'input-error' : ''}
                 disabled={isLoading}
               />
@@ -156,64 +147,65 @@ const MedicineFormModal = ({ isOpen, onClose, onSubmit, initialData = null, isLo
             </div>
 
             <div className="form-group">
-              <label htmlFor="batchNumber">Batch Number *</label>
-              <input
-                type="text"
-                id="batchNumber"
-                name="batchNumber"
-                value={formData.batchNumber}
+              <label htmlFor="dosageForm">Dosage Form</label>
+              <select
+                id="dosageForm"
+                name="dosageForm"
+                value={formData.dosageForm}
                 onChange={handleChange}
-                className={errors.batchNumber ? 'input-error' : ''}
                 disabled={isLoading}
-              />
-              {errors.batchNumber && <span className="field-error">{errors.batchNumber}</span>}
+              >
+                <option value="tablet">Tablet</option>
+                <option value="capsule">Capsule</option>
+                <option value="liquid">Liquid</option>
+                <option value="injection">Injection</option>
+                <option value="cream">Cream</option>
+                <option value="powder">Powder</option>
+                <option value="drops">Drops</option>
+                <option value="patch">Patch</option>
+              </select>
             </div>
           </div>
 
           <div className="form-row">
             <div className="form-group">
-              <label htmlFor="quantity">Quantity (units) *</label>
+              <label htmlFor="dosageStrength">Dosage Strength</label>
               <input
-                type="number"
-                id="quantity"
-                name="quantity"
-                value={formData.quantity}
+                type="text"
+                id="dosageStrength"
+                name="dosageStrength"
+                value={formData.dosageStrength}
                 onChange={handleChange}
-                className={errors.quantity ? 'input-error' : ''}
+                placeholder="e.g., 500mg, 10mg/5ml"
                 disabled={isLoading}
-                min="0"
               />
-              {errors.quantity && <span className="field-error">{errors.quantity}</span>}
             </div>
 
             <div className="form-group">
-              <label htmlFor="price">Price (₹) *</label>
+              <label htmlFor="category">Category</label>
               <input
-                type="number"
-                id="price"
-                name="price"
-                value={formData.price}
+                type="text"
+                id="category"
+                name="category"
+                value={formData.category}
                 onChange={handleChange}
-                className={errors.price ? 'input-error' : ''}
+                placeholder="e.g., Painkiller, Antibiotic"
                 disabled={isLoading}
-                min="0"
-                step="0.01"
               />
-              {errors.price && <span className="field-error">{errors.price}</span>}
             </div>
 
             <div className="form-group">
-              <label htmlFor="expiryDate">Expiry Date *</label>
+              <label htmlFor="reorderLevel">Reorder Level (units)</label>
               <input
-                type="date"
-                id="expiryDate"
-                name="expiryDate"
-                value={formData.expiryDate}
+                type="number"
+                id="reorderLevel"
+                name="reorderLevel"
+                value={formData.reorderLevel}
                 onChange={handleChange}
-                className={errors.expiryDate ? 'input-error' : ''}
+                placeholder="50"
+                min="0"
                 disabled={isLoading}
               />
-              {errors.expiryDate && <span className="field-error">{errors.expiryDate}</span>}
             </div>
           </div>
 
@@ -224,6 +216,7 @@ const MedicineFormModal = ({ isOpen, onClose, onSubmit, initialData = null, isLo
               name="description"
               value={formData.description}
               onChange={handleChange}
+              placeholder="Additional details about the medicine..."
               disabled={isLoading}
               rows="3"
             />
@@ -243,7 +236,7 @@ const MedicineFormModal = ({ isOpen, onClose, onSubmit, initialData = null, isLo
               className="btn-primary"
               disabled={isLoading}
             >
-              {isLoading ? 'Saving...' : 'Save Medicine'}
+              {isLoading ? 'Saving...' : initialData ? 'Update Medicine' : 'Add Medicine'}
             </button>
           </div>
         </form>

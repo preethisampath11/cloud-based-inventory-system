@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import MedicineTable from '../components/MedicineTable';
 import MedicineFormModal from '../components/MedicineFormModal';
 import medicineService from '../services/medicineService';
+import { useAuth } from '../hooks/useAuth';
 
 /**
  * Medicines Page
@@ -16,11 +17,15 @@ import medicineService from '../services/medicineService';
  * - Loading and error states
  */
 const Medicines = () => {
+  const { user } = useAuth();
   const [medicines, setMedicines] = useState([]);
   const [filteredMedicines, setFilteredMedicines] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Check if user has permission to edit medicines
+  const canEditMedicines = user && (user.role === 'admin' || user.role === 'pharmacist');
 
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -49,8 +54,9 @@ const Medicines = () => {
       setLoading(true);
       setError(null);
       const response = await medicineService.getMedicines();
-      setMedicines(response.data.data || []);
-      setFilteredMedicines(response.data.data || []);
+      const medicinesData = response.data.data.medicines || [];
+      setMedicines(medicinesData);
+      setFilteredMedicines(medicinesData);
     } catch (err) {
       const errorMessage =
         err.response?.data?.message ||
@@ -104,7 +110,7 @@ const Medicines = () => {
         setMedicines((prev) =>
           prev.map((m) =>
             (m._id || m.id) === (editingMedicine._id || editingMedicine.id)
-              ? response.data.data
+              ? response.data.data.medicine
               : m
           )
         );
@@ -112,7 +118,7 @@ const Medicines = () => {
       } else {
         // Create new medicine
         const response = await medicineService.createMedicine(formData);
-        setMedicines((prev) => [response.data.data, ...prev]);
+        setMedicines((prev) => [response.data.data.medicine, ...prev]);
         alert('Medicine added successfully');
       }
 
@@ -145,9 +151,11 @@ const Medicines = () => {
           <h1>💊 Medicines Management</h1>
           <p>Manage your pharmacy medicines inventory</p>
         </div>
-        <button className="btn-primary btn-lg" onClick={handleAddMedicine}>
-          + Add Medicine
-        </button>
+        {canEditMedicines && (
+          <button className="btn-primary btn-lg" onClick={handleAddMedicine}>
+            + Add Medicine
+          </button>
+        )}
       </div>
 
       {error && (
@@ -188,6 +196,7 @@ const Medicines = () => {
         isLoading={loading}
         onEdit={handleEditMedicine}
         onDelete={handleDeleteMedicine}
+        canEdit={canEditMedicines}
       />
 
       <MedicineFormModal

@@ -56,6 +56,7 @@ app.get('/', (req, res) => {
       health: '/api/health',
       auth: '/api/v1/auth',
       medicines: '/api/v1/medicines',
+      suppliers: '/api/v1/suppliers',
       batches: '/api/v1/batches',
       purchases: '/api/v1/purchases',
       sales: '/api/v1/sales',
@@ -80,6 +81,9 @@ app.use('/api/v1/auth', require('./src/routes/authRoutes'));
 
 // Medicine routes
 app.use('/api/v1/medicines', require('./src/routes/medicineRoutes'));
+
+// Supplier routes
+app.use('/api/v1/suppliers', require('./src/routes/supplierRoutes'));
 
 // Batch routes
 app.use('/api/v1/batches', require('./src/routes/batchRoutes'));
